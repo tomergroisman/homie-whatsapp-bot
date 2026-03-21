@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Connect Home Assistant</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --border: #1e1e2e;
+      --border-active: #3d3d6b;
+      --accent: #7c6fff;
+      --accent-dim: #3d3d6b;
+      --accent-glow: rgba(124,111,255,0.15);
+      --text: #e8e8f0;
+      --muted: #5a5a7a;
+      --success: #4ade80;
+      --error: #f87171;
+      --font-display: 'Syne', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+    }
+
+    html, body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-display);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 40% at 70% 10%, rgba(124,111,255,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 60% at 10% 80%, rgba(99,88,230,0.05) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 460px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2.5rem 2rem;
+      box-shadow: 0 0 0 1px rgba(124,111,255,0.05), 0 24px 64px rgba(0,0,0,0.5);
+      animation: rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 2rem;
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--accent), #4f46e5);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .logo-text {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.02em;
+    }
+
+    h1 span {
+      color: var(--accent);
+    }
+
+    .subtitle {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 2rem;
+      line-height: 1.6;
+    }
+
+    .field {
+      margin-bottom: 1.25rem;
+      animation: rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .field:nth-child(1) { animation-delay: 0.05s; }
+    .field:nth-child(2) { animation-delay: 0.1s; }
+    .field:nth-child(3) { animation-delay: 0.15s; }
+
+    label {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input:focus {
+      border-color: var(--accent-dim);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    input:disabled {
+      color: var(--muted);
+      cursor: not-allowed;
+      border-style: dashed;
+    }
+
+    .toggle-btn {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      transition: color 0.2s;
+    }
+    .toggle-btn:hover { color: var(--text); }
+
+    .hint {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-top: 0.4rem;
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 1.5rem 0;
+    }
+
+    .security-note {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      background: var(--accent-glow);
+      border: 1px solid var(--accent-dim);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .security-note .icon { font-size: 14px; margin-top: 1px; flex-shrink: 0; }
+
+    .security-note p {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .security-note p strong { color: var(--accent); font-weight: 500; }
+
+    button[type="submit"] {
+      width: 100%;
+      padding: 0.85rem;
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      font-family: var(--font-display);
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      letter-spacing: 0.03em;
+      transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 24px rgba(124,111,255,0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    button[type="submit"]:hover:not(:disabled) {
+      opacity: 0.9;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 28px rgba(124,111,255,0.4);
+    }
+
+    button[type="submit"]:active:not(:disabled) { transform: translateY(0); }
+
+    button[type="submit"]:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .spinner {
+      display: none;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .status {
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      display: none;
+      line-height: 1.5;
+    }
+    .status.success {
+      background: rgba(74,222,128,0.08);
+      border: 1px solid rgba(74,222,128,0.3);
+      color: var(--success);
+      display: block;
+    }
+    .status.error {
+      background: rgba(248,113,113,0.08);
+      border: 1px solid rgba(248,113,113,0.3);
+      color: var(--error);
+      display: block;
+    }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <div class="logo-icon">🏠</div>
+    <span class="logo-text">Home Assistant Bot</span>
+  </div>
+
+  <h1>Connect your<br/><span>Home Assistant</span></h1>
+  <p class="subtitle">Your credentials are encrypted in the browser<br/>before being sent — we never see your token in plaintext.</p>
+
+  <div class="field">
+    <label>WhatsApp Number</label>
+    <input type="text" id="phone" disabled placeholder="Not provided"/>
+  </div>
+
+  <div class="field">
+    <label>Home Assistant URL</label>
+    <input type="text" id="host" placeholder="http://192.168.1.x:8123" autocomplete="off" spellcheck="false"/>
+    <p class="hint">Include http:// or https:// and port if needed</p>
+  </div>
+
+  <div class="field">
+    <label>Long-Lived Access Token</label>
+    <div class="input-wrap">
+      <input type="password" id="apikey" placeholder="eyJ0eXAiOiJKV1Q..." autocomplete="off" spellcheck="false"/>
+      <button type="button" class="toggle-btn" onclick="toggleKey()" title="Show/hide token">
+        <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+      </button>
+    </div>
+    <p class="hint">Settings → Profile → Long-Lived Access Tokens in HA</p>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="security-note">
+    <span class="icon">🔐</span>
+    <p>Encrypted with <strong>RSA-OAEP</strong> using a public key. Only the server holds the private key to decrypt.</p>
+  </div>
+
+  <button type="submit" id="submit-btn" onclick="handleSubmit()">
+    <span id="btn-label">Connect</span>
+    <div class="spinner" id="spinner"></div>
+  </button>
+
+  <div class="status" id="status"></div>
+</div>
+
+<script>
+  // ── Config ────────────────────────────────────────────────────────────────
+  const WEBHOOK_URL = "YOUR_N8N_WEBHOOK_URL"; // replace with your n8n webhook
+
+  // RSA-OAEP public key (PEM) — replace with your generated public key
+  const PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7dC42w3rlX+GRGT+EEqu
+Hgx07FP0W749QOHZTs65UlpKCZ+jjh3bwfQC7tZ1pz8ed6n4hXuX32WQE9H8gWIw
+MQ40lAqPcwmfsWZNupqUR9ulxz6dQ7Bty1MBMMN6c2yuKKbFBmvuF4q8DIayADyJ
+wS2jKrWcqv60ibsMVeuvmttQxormUTaqU0C4QLq1vDcZq+DSrYDPQ4UE9EfipsId
+gULTWOkIBm5jXPMEwUAcQPQaRXihmA+Xdt/SCnzNagMRIPDujgG35jHNg58r8oEp
+YbWDJBXGbh33S4SL2C7qE4ygq4Jy33w7j6Ta5AVesncePfv44CCDa7M3xYyu01CE
+JwIDAQAB
+-----END PUBLIC KEY-----`;
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // Read phone from query param
+  const params = new URLSearchParams(window.location.search);
+  const phone = params.get("phone") || params.get("from") || "";
+  if (phone) document.getElementById("phone").value = phone;
+
+  function toggleKey() {
+    const input = document.getElementById("apikey");
+    const icon = document.getElementById("eye-icon");
+    if (input.type === "password") {
+      input.type = "text";
+      icon.innerHTML = `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>`;
+    } else {
+      input.type = "password";
+      icon.innerHTML = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
+    }
+  }
+
+  async function importPublicKey(pem) {
+    const b64 = pem.replace(/-----[^-]+-----/g, "").replace(/\s/g, "");
+    const binary = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    return crypto.subtle.importKey(
+      "spki", binary.buffer,
+      { name: "RSA-OAEP", hash: "SHA-256" },
+      false, ["encrypt"]
+    );
+  }
+
+  async function encryptPayload(publicKey, data) {
+    const encoded = new TextEncoder().encode(JSON.stringify(data));
+    const encrypted = await crypto.subtle.encrypt(
+      { name: "RSA-OAEP" }, publicKey, encoded
+    );
+    return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
+  }
+
+  function setLoading(loading) {
+    const btn = document.getElementById("submit-btn");
+    const label = document.getElementById("btn-label");
+    const spinner = document.getElementById("spinner");
+    btn.disabled = loading;
+    label.style.display = loading ? "none" : "inline";
+    spinner.style.display = loading ? "block" : "none";
+  }
+
+  function showStatus(type, msg) {
+    const el = document.getElementById("status");
+    el.className = "status " + type;
+    el.textContent = msg;
+  }
+
+  async function handleSubmit() {
+    const phone = document.getElementById("phone").value.trim();
+    const host = document.getElementById("host").value.trim();
+    const apikey = document.getElementById("apikey").value.trim();
+
+    if (!host || !apikey) {
+      showStatus("error", "Please fill in both the URL and the token.");
+      return;
+    }
+
+    if (!/^https?:\/\/.+/.test(host)) {
+      showStatus("error", "URL must start with http:// or https://");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const publicKey = await importPublicKey(PUBLIC_KEY_PEM);
+      const encrypted = await encryptPayload(publicKey, { phone, host, apikey });
+
+      const res = await fetch(WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, payload: encrypted })
+      });
+
+      if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+
+      showStatus("success", "✓ Connected! You'll receive a WhatsApp confirmation shortly.");
+      document.getElementById("host").value = "";
+      document.getElementById("apikey").value = "";
+    } catch (err) {
+      showStatus("error", "Something went wrong: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+</script>
+</body>
+</html>
