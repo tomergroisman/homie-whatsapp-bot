@@ -380,11 +380,33 @@ JwIDAQAB
   }
 
   async function encryptPayload(publicKey, data) {
-    const encoded = new TextEncoder().encode(JSON.stringify(data));
-    const encrypted = await crypto.subtle.encrypt(
-      { name: "RSA-OAEP" }, publicKey, encoded
+    // Generate a random AES-GCM key
+    const aesKey = await crypto.subtle.generateKey(
+      { name: "AES-GCM", length: 256 }, true, ["encrypt"]
     );
-    return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
+
+    // Encrypt the payload with AES-GCM
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const encoded = new TextEncoder().encode(JSON.stringify(data));
+    const ciphertext = await crypto.subtle.encrypt(
+      { name: "AES-GCM", iv }, aesKey, encoded
+    );
+
+    // Encrypt the AES key with RSA-OAEP
+    const rawAesKey = await crypto.subtle.exportKey("raw", aesKey);
+    const encryptedAesKey = await crypto.subtle.encrypt(
+      { name: "RSA-OAEP" }, publicKey, rawAesKey
+    );
+
+    // Pack: encryptedAesKey (256 bytes) + iv (12 bytes) + ciphertext
+    const combined = new Uint8Array(
+      encryptedAesKey.byteLength + iv.byteLength + ciphertext.byteLength
+    );
+    combined.set(new Uint8Array(encryptedAesKey), 0);
+    combined.set(iv, encryptedAesKey.byteLength);
+    combined.set(new Uint8Array(ciphertext), encryptedAesKey.byteLength + iv.byteLength);
+
+    return btoa(String.fromCharCode(...combined));
   }
 
   function setLoading(loading) {
