@@ -158,6 +158,11 @@
       border-style: dashed;
     }
 
+    input.error-field {
+      border-color: var(--error) !important;
+      box-shadow: 0 0 0 3px rgba(248,113,113,0.1) !important;
+    }
+
     .toggle-btn {
       position: absolute;
       right: 10px;
@@ -292,13 +297,13 @@
   <div class="field">
     <label>Home Assistant URL</label>
     <input type="text" id="host" placeholder="http://192.168.1.x:8123" autocomplete="off" spellcheck="false"/>
-    <p class="hint">Include http:// or https:// and port if needed</p>
+    <p class="hint">e.g. 192.168.1.x:8123 or myhome.duckdns.org</p>
   </div>
 
   <div class="field">
     <label>Long-Lived Access Token</label>
     <div class="input-wrap">
-      <input type="password" id="apikey" placeholder="eyJ0eXAiOiJKV1Q..." autocomplete="off" spellcheck="false"/>
+      <input type="password" id="apikey" placeholder="eyJ0eXAiOiJKV1Q..." autocomplete="off" spellcheck="false" style="padding-right: 2.5rem;"/>
       <button type="button" class="toggle-btn" onclick="toggleKey()" title="Show/hide token">
         <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
@@ -343,7 +348,14 @@ JwIDAQAB
   // Read phone from query param
   const params = new URLSearchParams(window.location.search);
   const phone = params.get("phone") || params.get("from") || "";
-  if (phone) document.getElementById("phone").value = phone;
+  const phoneInput = document.getElementById("phone");
+  if (phone) {
+    phoneInput.value = phone;
+  } else {
+    phoneInput.value = "No phone number provided";
+    phoneInput.classList.add("error-field");
+    document.getElementById("submit-btn").disabled = true;
+  }
 
   function toggleKey() {
     const input = document.getElementById("apikey");
@@ -392,18 +404,20 @@ JwIDAQAB
 
   async function handleSubmit() {
     const phone = document.getElementById("phone").value.trim();
-    const host = document.getElementById("host").value.trim();
+    const rawHost = document.getElementById("host").value.trim();
     const apikey = document.getElementById("apikey").value.trim();
 
-    if (!host || !apikey) {
+    if (!phone || phone === "No phone number provided") {
+      showStatus("error", "This link is missing your phone number. Please use the link sent to you on WhatsApp.");
+      return;
+    }
+
+    if (!rawHost || !apikey) {
       showStatus("error", "Please fill in both the URL and the token.");
       return;
     }
 
-    if (!/^https?:\/\/.+/.test(host)) {
-      showStatus("error", "URL must start with http:// or https://");
-      return;
-    }
+    const host = rawHost;
 
     setLoading(true);
 
