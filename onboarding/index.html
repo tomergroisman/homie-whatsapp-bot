@@ -446,15 +446,21 @@ JwIDAQAB
     try {
       const publicKey = await importPublicKey(PUBLIC_KEY_PEM);
       const encrypted = await encryptPayload(publicKey, { phone, host, apikey });
-
+ 
       const res = await fetch(WEBHOOK_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone, payload: encrypted })
       });
-
-      if (!res.ok) throw new Error(`Server responded with ${res.status}`);
-
+ 
+      let body;
+      try { body = await res.json(); } catch { body = null; }
+ 
+      if (!res.ok) {
+        const msg = body?.error || body?.message || `Server responded with ${res.status}`;
+        throw new Error(msg);
+      }
+ 
       showStatus("success", "✓ Connected! You'll receive a WhatsApp confirmation shortly.");
       document.getElementById("host").value = "";
       document.getElementById("apikey").value = "";
